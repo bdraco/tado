@@ -524,9 +524,12 @@ class TadoClimate(ClimateDevice):
 
         # tado does not permit setting the fan speed to
         # off, you must turn off the device
-        if self._current_tado_fan_speed == CONST_FAN_OFF and self._current_tado_hvac_mode != CONST_MODE_OFF:
+        if (
+            self._current_tado_fan_speed == CONST_FAN_OFF
+            and self._current_tado_hvac_mode != CONST_MODE_OFF
+        ):
             self._current_tado_fan_speed = CONST_FAN_AUTO
-        
+
         if self._current_tado_hvac_mode == CONST_MODE_OFF:
             _LOGGER.debug(
                 "Switching to OFF for zone %s (%d)", self.zone_name, self.zone_id
