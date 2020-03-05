@@ -162,7 +162,7 @@ class TadoSensor(Entity):
         except KeyError:
             return
 
-        self._tado_zone_data = TadoZoneData(data)
+        self._tado_zone_data = TadoZoneData(data, self.zone_id)
 
         if self.zone_variable == "temperature":
             self._state = self.hass.config.units.temperature(
