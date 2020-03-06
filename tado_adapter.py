@@ -12,6 +12,7 @@ from .const import (
     CONST_FAN_AUTO,
     CONST_FAN_OFF,
     CONST_LINK_OFFLINE,
+    CONST_MODE_OFF,
     CONST_MODE_SMART_SCHEDULE,
     DEFAULT_TADO_PRECISION,
     TADO_MODES_TO_HA_CURRENT_HVAC_ACTION,
@@ -224,11 +225,15 @@ class TadoZoneData:
             setting = data["setting"]
 
             self._current_tado_fan_speed = CONST_FAN_OFF
-            self._power = setting["power"]
-            if setting["power"] == "ON":
-                # If there is no overlay, the mode will always be
-                # "SMART_SCHEDULE"
+            # If there is no overlay, the mode will always be
+            # "SMART_SCHEDULE"
+            if "mode" in setting:
                 self._current_tado_hvac_mode = setting["mode"]
+            else:
+                self._current_tado_hvac_mode = CONST_MODE_OFF
+
+            self._power = setting["power"]
+            if self._power == "ON":
                 # Not all devices have fans
                 self._current_tado_fan_speed = setting.get("fanSpeed", CONST_FAN_AUTO)
                 self._current_hvac_action = CURRENT_HVAC_IDLE
@@ -242,9 +247,7 @@ class TadoZoneData:
             if "acPower" in activity_data and activity_data["acPower"] is not None:
                 self._ac_power = activity_data["acPower"]["value"]
                 self._ac_power_timestamp = activity_data["acPower"]["timestamp"]
-                if activity_data["acPower"]["value"] == "OFF":
-                    self._current_hvac_action = CURRENT_HVAC_OFF
-                else:
+                if activity_data["acPower"]["value"] == "ON" and self._power == "ON":
                     # acPower means the unit has power so we need to map the mode
                     self._current_hvac_action = TADO_MODES_TO_HA_CURRENT_HVAC_ACTION.get(
                         self._current_tado_hvac_mode, CURRENT_HVAC_COOL
@@ -261,7 +264,7 @@ class TadoZoneData:
                     activity_data["heatingPower"]["percentage"]
                 )
 
-                if self._heating_power_percentage > 0.0:
+                if self._heating_power_percentage > 0.0 and self._power == "ON":
                     self._current_hvac_action = CURRENT_HVAC_HEAT
 
         # If there is no overlay
