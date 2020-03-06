@@ -52,7 +52,9 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     for tado in api_list:
         for zone in tado.zones:
             if zone["type"] in [TYPE_HOT_WATER]:
-                entity = create_water_heater_entity(hass, tado, zone["name"], zone["id"])
+                entity = create_water_heater_entity(
+                    hass, tado, zone["name"], zone["id"]
+                )
                 entities.append(entity)
 
     if entities:

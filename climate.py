@@ -358,11 +358,6 @@ class TadoClimate(ClimateDevice):
 
         return self._heat_max_temp
 
-    @property
-    def should_poll(self):
-        """Do not poll."""
-        return False
-
     @callback
     def _async_update_zone_data(self):
         """Load tado data into zone."""
