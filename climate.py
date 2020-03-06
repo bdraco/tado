@@ -174,7 +174,6 @@ class TadoClimate(ClimateDevice):
 
         self._cur_temp = None
         self._cur_humidity = None
-        self._is_away = False
 
         self._heat_min_temp = heat_min_temp
         self._heat_max_temp = heat_max_temp
@@ -281,7 +280,7 @@ class TadoClimate(ClimateDevice):
     @property
     def preset_mode(self):
         """Return the current preset mode (home, away)."""
-        if self._is_away:
+        if self._tado_zone_data.is_away:
             return PRESET_AWAY
         return PRESET_HOME
 
