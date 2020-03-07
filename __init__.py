@@ -245,6 +245,6 @@ def _raise_home_away_errors(response_json):
 
     # Likely we are displaying to the user:
     # Tried to update to HOME though all mobile devices are detected outside the home fence
-    if "errors" in response_json and len(response_json["errors"]):
+    if "errors" in response_json and len(response_json["errors"]) > 0:
         error_list = response_json["errors"]
         raise HomeAssistantError(error_list[0]["title"])

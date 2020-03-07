@@ -116,6 +116,7 @@ class TadoWaterHeater(WaterHeaterDevice):
             self._supported_features |= SUPPORT_TARGET_TEMPERATURE
 
         self._current_tado_heat_mode = CONST_MODE_SMART_SCHEDULE
+        self._overlay_mode = CONST_MODE_SMART_SCHEDULE
         self._async_update_data()
 
     async def async_added_to_hass(self):
