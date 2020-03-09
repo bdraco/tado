@@ -167,7 +167,6 @@ class TadoClimate(ClimateDevice):
         support_flags,
     ):
         """Initialize of Tado climate entity."""
-        self.hass = hass
         self._tado = tado
 
         self.zone_name = zone_name
@@ -200,11 +199,11 @@ class TadoClimate(ClimateDevice):
         self._current_hvac_action = CURRENT_HVAC_OFF
 
         self._tado_zone_data = None
-        self._async_update_zone_data()
 
     async def async_added_to_hass(self):
         """Register for sensor updates."""
 
+        self._async_update_zone_data()
         async_dispatcher_connect(
             self.hass,
             SIGNAL_TADO_UPDATE_RECEIVED.format("zone", self.zone_id),

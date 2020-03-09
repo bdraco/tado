@@ -40,6 +40,7 @@ class TadoZoneData:
         self._available = False
         self._power = None
         self._link = None
+        self._precision = DEFAULT_TADO_PRECISION
         self._ac_power_timestamp = None
         self._heating_power_timestamp = None
         self._ac_power = None
@@ -181,7 +182,6 @@ class TadoZoneData:
     def update_data(self, data):
         """Handle update callbacks."""
         _LOGGER.debug("Updating climate platform for zone %d", self._zone_id)
-        self._precision = DEFAULT_TADO_PRECISION
         if "sensorDataPoints" in data:
             sensor_data = data["sensorDataPoints"]
 
