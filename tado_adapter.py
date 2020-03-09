@@ -40,7 +40,6 @@ class TadoZoneData:
         self._available = False
         self._power = None
         self._link = None
-        self._precision = DEFAULT_TADO_PRECISION
         self._ac_power_timestamp = None
         self._heating_power_timestamp = None
         self._ac_power = None
@@ -52,6 +51,7 @@ class TadoZoneData:
         self._preparation = None
         self._open_window = None
         self._open_window_attr = None
+        self._precision = DEFAULT_TADO_PRECISION
         self.update_data(data)
 
     @property

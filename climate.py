@@ -53,7 +53,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     for tado in api_list:
         for zone in tado.zones:
             if zone["type"] in [TYPE_HEATING, TYPE_AIR_CONDITIONING]:
-                entity = create_climate_entity(hass, tado, zone["name"], zone["id"])
+                entity = create_climate_entity(tado, zone["name"], zone["id"])
                 if entity:
                     entities.append(entity)
 
@@ -61,7 +61,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         add_entities(entities, True)
 
 
-def create_climate_entity(hass, tado, name: str, zone_id: int):
+def create_climate_entity(tado, name: str, zone_id: int):
     """Create a Tado climate entity."""
     capabilities = tado.get_capabilities(zone_id)
     _LOGGER.debug("Capabilities for zone %s: %s", zone_id, capabilities)
@@ -128,7 +128,6 @@ def create_climate_entity(hass, tado, name: str, zone_id: int):
         cool_step = cool_temperatures["celsius"].get("step", PRECISION_TENTHS)
 
     entity = TadoClimate(
-        hass,
         tado,
         name,
         zone_id,
@@ -151,7 +150,6 @@ class TadoClimate(ClimateDevice):
 
     def __init__(
         self,
-        hass,
         tado,
         zone_name,
         zone_id,
@@ -199,11 +197,11 @@ class TadoClimate(ClimateDevice):
         self._current_hvac_action = CURRENT_HVAC_OFF
 
         self._tado_zone_data = None
+        self._async_update_zone_data()
 
     async def async_added_to_hass(self):
         """Register for sensor updates."""
 
-        self._async_update_zone_data()
         async_dispatcher_connect(
             self.hass,
             SIGNAL_TADO_UPDATE_RECEIVED.format("zone", self.zone_id),
