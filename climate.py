@@ -246,7 +246,7 @@ class TadoClimate(ClimateDevice):
         Need to be one of HVAC_MODE_*.
         """
         return TADO_TO_HA_HVAC_MODE_MAP.get(
-            self._tado_zone_data.current_tado_hvac_mode, HVAC_MODE_OFF
+            self._current_tado_hvac_mode, HVAC_MODE_OFF
         )
 
     @property
@@ -264,7 +264,7 @@ class TadoClimate(ClimateDevice):
         Need to be one of CURRENT_HVAC_*.
         """
         return TADO_HVAC_ACTION_TO_HA_HVAC_ACTION.get(
-            self._tado_zone_data.current_tado_hvac_action, CURRENT_HVAC_OFF
+            self._tado_zone_data.current_hvac_action, CURRENT_HVAC_OFF
         )
 
     @property
@@ -310,7 +310,7 @@ class TadoClimate(ClimateDevice):
     @property
     def target_temperature_step(self):
         """Return the supported step of target temperature."""
-        if self._tado_zone_data.current_tado_hvac_mode == CONST_MODE_COOL:
+        if self._tado_zone_data.current_hvac_mode == CONST_MODE_COOL:
             return self._cool_step or self._heat_step
         return self._heat_step or self._cool_step
 
@@ -367,9 +367,9 @@ class TadoClimate(ClimateDevice):
     def _async_update_zone_data(self):
         """Load tado data into zone."""
         self._tado_zone_data = self._tado.data["zone"][self.zone_id]
-        self._current_tado_fan_speed = self._tado_zone_data.current_tado_fan_speed
-        self._current_tado_hvac_mode = self._tado_zone_data.current_tado_hvac_mode
-        self._current_tado_hvac_action = self._tado_zone_data.current_tado_hvac_action
+        self._current_tado_fan_speed = self._tado_zone_data.current_fan_speed
+        self._current_tado_hvac_mode = self._tado_zone_data.current_hvac_mode
+        self._current_tado_hvac_action = self._tado_zone_data.current_hvac_action
 
     @callback
     def _async_update_callback(self):

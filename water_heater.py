@@ -151,7 +151,7 @@ class TadoWaterHeater(WaterHeaterDevice):
     @property
     def current_operation(self):
         """Return current readable operation mode."""
-        return WATER_HEATER_MAP_TADO.get(self._tado_zone_data.current_tado_hvac_mode)
+        return WATER_HEATER_MAP_TADO.get(self._current_hvac_mode)
 
     @property
     def target_temperature(self):
@@ -215,8 +215,8 @@ class TadoWaterHeater(WaterHeaterDevice):
         """Load tado data."""
         _LOGGER.debug("Updating water_heater platform for zone %d", self.zone_id)
         self._tado_zone_data = self._tado.data["zone"][self.zone_id]
-        self._current_tado_hvac_mode = self._tado_zone_data.current_tado_hvac_mode
-        self._current_tado_hvac_action = self._tado_zone_data.current_tado_hvac_action
+        self._current_tado_hvac_mode = self._tado_zone_data.current_hvac_mode
+        self._current_tado_hvac_action = self._tado_zone_data.current_hvac_action
         self.async_write_ha_state()
 
     def _control_heater(self, hvac_mode=None, target_temp=None):
