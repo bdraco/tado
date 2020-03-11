@@ -3,6 +3,7 @@ from datetime import timedelta
 import logging
 
 from PyTado.interface import Tado
+from PyTado.zone import TadoZone
 from requests import RequestException
 import voluptuous as vol
 
@@ -135,14 +136,14 @@ class TadoConnector:
         _LOGGER.debug("Updating %s %s", sensor_type, sensor)
         try:
             if sensor_type == "zone":
-                data = self.tado.getState(sensor)
+                data = self.tado.getZoneState(sensor)
             elif sensor_type == "device":
                 devices_data = self.tado.getDevices()
                 if not devices_data:
                     _LOGGER.info("There are no devices to setup on this tado account.")
                     return
 
-                data = devices_data[0]
+                data = TadoZone(devices_data[0])
             else:
                 _LOGGER.debug("Unknown sensor: %s", sensor_type)
                 return

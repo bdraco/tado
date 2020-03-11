@@ -1,10 +1,22 @@
 """Constant values for the Tado component."""
 
+from PyTado.const import (
+    CONST_HVAC_COOL,
+    CONST_HVAC_DRY,
+    CONST_HVAC_FAN,
+    CONST_HVAC_HEAT,
+    CONST_HVAC_HOT_WATER,
+    CONST_HVAC_IDLE,
+    CONST_HVAC_OFF,
+)
+
 from homeassistant.components.climate.const import (
     CURRENT_HVAC_COOL,
     CURRENT_HVAC_DRY,
     CURRENT_HVAC_FAN,
     CURRENT_HVAC_HEAT,
+    CURRENT_HVAC_IDLE,
+    CURRENT_HVAC_OFF,
     FAN_AUTO,
     FAN_HIGH,
     FAN_LOW,
@@ -20,6 +32,16 @@ from homeassistant.components.climate.const import (
     PRESET_AWAY,
     PRESET_HOME,
 )
+
+TADO_HVAC_ACTION_TO_HA_HVAC_ACTION = {
+    CONST_HVAC_HEAT: CURRENT_HVAC_HEAT,
+    CONST_HVAC_DRY: CURRENT_HVAC_DRY,
+    CONST_HVAC_FAN: CURRENT_HVAC_FAN,
+    CONST_HVAC_COOL: CURRENT_HVAC_COOL,
+    CONST_HVAC_IDLE: CURRENT_HVAC_IDLE,
+    CONST_HVAC_OFF: CURRENT_HVAC_OFF,
+    CONST_HVAC_HOT_WATER: CURRENT_HVAC_HEAT,
+}
 
 # Configuration
 CONF_FALLBACK = "fallback"

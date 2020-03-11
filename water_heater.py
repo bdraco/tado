@@ -103,7 +103,6 @@ class TadoWaterHeater(WaterHeaterDevice):
         self._unique_id = f"{zone_id} {tado.device_id}"
 
         self._device_is_active = False
-        self._is_away = False
 
         self._supports_temperature_control = supports_temperature_control
         self._min_temperature = min_temp
@@ -115,8 +114,9 @@ class TadoWaterHeater(WaterHeaterDevice):
         if self._supports_temperature_control:
             self._supported_features |= SUPPORT_TARGET_TEMPERATURE
 
-        self._current_tado_heat_mode = CONST_MODE_SMART_SCHEDULE
+        self._current_tado_hvac_mode = CONST_MODE_SMART_SCHEDULE
         self._overlay_mode = CONST_MODE_SMART_SCHEDULE
+        self._tado_zone_data = None
         self._async_update_data()
 
     async def async_added_to_hass(self):
@@ -151,17 +151,17 @@ class TadoWaterHeater(WaterHeaterDevice):
     @property
     def current_operation(self):
         """Return current readable operation mode."""
-        return WATER_HEATER_MAP_TADO.get(self._current_tado_heat_mode)
+        return WATER_HEATER_MAP_TADO.get(self._tado_zone_data.current_tado_hvac_mode)
 
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        return self._target_temp
+        return self._tado_zone_data.target_temp
 
     @property
     def is_away_mode_on(self):
         """Return true if away mode is on."""
-        return self._is_away
+        return self._tado_zone_data.is_away
 
     @property
     def operation_list(self):
@@ -194,7 +194,7 @@ class TadoWaterHeater(WaterHeaterDevice):
         elif operation_mode == MODE_HEAT:
             mode = CONST_MODE_HEAT
 
-        self._control_heater(heat_mode=mode)
+        self._control_heater(hvac_mode=mode)
 
     def set_temperature(self, **kwargs):
         """Set new target temperature."""
@@ -214,38 +214,16 @@ class TadoWaterHeater(WaterHeaterDevice):
     def _async_update_data(self):
         """Load tado data."""
         _LOGGER.debug("Updating water_heater platform for zone %d", self.zone_id)
-        data = self._tado.data["zone"][self.zone_id]
-
-        if "tadoMode" in data:
-            mode = data["tadoMode"]
-            self._is_away = mode == "AWAY"
-
-        if "setting" in data:
-            power = data["setting"]["power"]
-            if power == "OFF":
-                self._current_tado_heat_mode = CONST_MODE_OFF
-            else:
-                self._current_tado_heat_mode = CONST_MODE_HEAT
-
-        # temperature setting will not exist when device is off
-        if (
-            "temperature" in data["setting"]
-            and data["setting"]["temperature"] is not None
-        ):
-            self._target_temp = float(data["setting"]["temperature"]["celsius"])
-
-        # If there is no overlay
-        # then we are running the smart schedule
-        if "overlay" in data and data["overlay"] is None:
-            self._current_tado_heat_mode = CONST_MODE_SMART_SCHEDULE
-
+        self._tado_zone_data = self._tado.data["zone"][self.zone_id]
+        self._current_tado_hvac_mode = self._tado_zone_data.current_tado_hvac_mode
+        self._current_tado_hvac_action = self._tado_zone_data.current_tado_hvac_action
         self.async_write_ha_state()
 
-    def _control_heater(self, heat_mode=None, target_temp=None):
+    def _control_heater(self, hvac_mode=None, target_temp=None):
         """Send new target temperature."""
 
-        if heat_mode:
-            self._current_tado_heat_mode = heat_mode
+        if hvac_mode:
+            self._current_tado_hvac_mode = hvac_mode
 
         if target_temp:
             self._target_temp = target_temp
@@ -254,7 +232,7 @@ class TadoWaterHeater(WaterHeaterDevice):
         if self._target_temp is None:
             self._target_temp = self.min_temp
 
-        if self._current_tado_heat_mode == CONST_MODE_SMART_SCHEDULE:
+        if self._current_tado_hvac_mode == CONST_MODE_SMART_SCHEDULE:
             _LOGGER.debug(
                 "Switching to SMART_SCHEDULE for zone %s (%d)",
                 self.zone_name,
@@ -263,7 +241,7 @@ class TadoWaterHeater(WaterHeaterDevice):
             self._tado.reset_zone_overlay(self.zone_id)
             return
 
-        if self._current_tado_heat_mode == CONST_MODE_OFF:
+        if self._current_tado_hvac_mode == CONST_MODE_OFF:
             _LOGGER.debug(
                 "Switching to OFF for zone %s (%d)", self.zone_name, self.zone_id
             )
@@ -277,7 +255,7 @@ class TadoWaterHeater(WaterHeaterDevice):
 
         _LOGGER.debug(
             "Switching to %s for zone %s (%d) with temperature %s",
-            self._current_tado_heat_mode,
+            self._current_tado_hvac_mode,
             self.zone_name,
             self.zone_id,
             self._target_temp,
@@ -289,4 +267,4 @@ class TadoWaterHeater(WaterHeaterDevice):
             duration=None,
             device_type=TYPE_HOT_WATER,
         )
-        self._overlay_mode = self._current_tado_heat_mode
+        self._overlay_mode = self._current_tado_hvac_mode

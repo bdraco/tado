@@ -6,6 +6,7 @@ from homeassistant.components.climate.const import (
     CURRENT_HVAC_OFF,
     FAN_AUTO,
     HVAC_MODE_HEAT,
+    HVAC_MODE_OFF,
     PRESET_AWAY,
     PRESET_HOME,
     SUPPORT_FAN_MODE,
@@ -31,13 +32,13 @@ from .const import (
     HA_TO_TADO_HVAC_MODE_MAP,
     ORDERED_KNOWN_TADO_MODES,
     SUPPORT_PRESET,
+    TADO_HVAC_ACTION_TO_HA_HVAC_ACTION,
     TADO_MODES_WITH_NO_TEMP_SETTING,
     TADO_TO_HA_FAN_MODE_MAP,
     TADO_TO_HA_HVAC_MODE_MAP,
     TYPE_AIR_CONDITIONING,
     TYPE_HEATING,
 )
-from .tado_adapter import TadoZoneData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ class TadoClimate(ClimateDevice):
 
         self._current_tado_fan_speed = CONST_FAN_OFF
         self._current_tado_hvac_mode = CONST_MODE_OFF
-        self._current_hvac_action = CURRENT_HVAC_OFF
+        self._current_tado_hvac_action = CURRENT_HVAC_OFF
 
         self._tado_zone_data = None
         self._async_update_zone_data()
@@ -245,7 +246,7 @@ class TadoClimate(ClimateDevice):
         Need to be one of HVAC_MODE_*.
         """
         return TADO_TO_HA_HVAC_MODE_MAP.get(
-            self._tado_zone_data.current_tado_hvac_mode, CURRENT_HVAC_OFF
+            self._tado_zone_data.current_tado_hvac_mode, HVAC_MODE_OFF
         )
 
     @property
@@ -262,7 +263,9 @@ class TadoClimate(ClimateDevice):
 
         Need to be one of CURRENT_HVAC_*.
         """
-        return self._tado_zone_data.current_hvac_action
+        return TADO_HVAC_ACTION_TO_HA_HVAC_ACTION.get(
+            self._tado_zone_data.current_tado_hvac_action, CURRENT_HVAC_OFF
+        )
 
     @property
     def fan_mode(self):
@@ -363,9 +366,10 @@ class TadoClimate(ClimateDevice):
     @callback
     def _async_update_zone_data(self):
         """Load tado data into zone."""
-        self._tado_zone_data = TadoZoneData(
-            self._tado.data["zone"][self.zone_id], self.zone_id
-        )
+        self._tado_zone_data = self._tado.data["zone"][self.zone_id]
+        self._current_tado_fan_speed = self._tado_zone_data.current_tado_fan_speed
+        self._current_tado_hvac_mode = self._tado_zone_data.current_tado_hvac_mode
+        self._current_tado_hvac_action = self._tado_zone_data.current_tado_hvac_action
 
     @callback
     def _async_update_callback(self):
