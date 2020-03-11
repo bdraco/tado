@@ -268,5 +268,5 @@ class TadoDeviceSensor(Entity):
         except KeyError:
             return
 
-        elif self.device_variable == "tado bridge status":
+        if self.device_variable == "tado bridge status":
             self._state = data.get("connectionState",{}).get("value",False)
