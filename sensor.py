@@ -50,7 +50,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         for zone in tado.zones:
             entities.extend(
                 [
-                    create_zone_sensor(hass, tado, zone["name"], zone["id"], variable)
+                    TadoZoneSensor(hass, tado, zone["name"], zone["id"], variable)
                     for variable in ZONE_SENSORS.get(zone["type"])
                 ]
             )
@@ -59,28 +59,17 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         for home in tado.devices:
             entities.extend(
                 [
-                    create_device_sensor(hass, tado, home["name"], home["id"], variable)
+                    TadoDeviceSensor(hass, tado, home["name"], home["id"], variable)
                     for variable in DEVICE_SENSORS
                 ]
             )
 
     add_entities(entities, True)
 
-
-def create_zone_sensor(hass, tado, name, zone_id, variable):
-    """Create a zone sensor."""
-    return TadoSensor(hass, tado, name, "zone", zone_id, variable)
-
-
-def create_device_sensor(hass, tado, name, device_id, variable):
-    """Create a device sensor."""
-    return TadoSensor(hass, tado, name, "device", device_id, variable)
-
-
-class TadoSensor(Entity):
+class TadoZoneSensor(Entity):
     """Representation of a tado Sensor."""
 
-    def __init__(self, hass, tado, zone_name, sensor_type, zone_id, zone_variable):
+    def __init__(self, hass, tado, zone_name, zone_id, zone_variable):
         """Initialize of the Tado Sensor."""
         self.hass = hass
         self._tado = tado
@@ -88,7 +77,6 @@ class TadoSensor(Entity):
         self.zone_name = zone_name
         self.zone_id = zone_id
         self.zone_variable = zone_variable
-        self.sensor_type = sensor_type
 
         self._unique_id = f"{zone_variable} {zone_id} {tado.device_id}"
 
@@ -102,7 +90,7 @@ class TadoSensor(Entity):
 
         async_dispatcher_connect(
             self.hass,
-            SIGNAL_TADO_UPDATE_RECEIVED.format(self.sensor_type, self.zone_id),
+            SIGNAL_TADO_UPDATE_RECEIVED.format("zone", self.zone_id),
             self._async_update_callback,
         )
 
@@ -161,7 +149,7 @@ class TadoSensor(Entity):
     def _async_update_zone_data(self):
         """Handle update callbacks."""
         try:
-            self._tado_zone_data = self._tado.data[self.sensor_type][self.zone_id]
+            self._tado_zone_data = self._tado.data["zone"][self.zone_id]
         except KeyError:
             return
 
@@ -216,3 +204,69 @@ class TadoSensor(Entity):
         elif self.zone_variable == "open window":
             self._state = self._tado_zone_data.open_window is not None
             self._state_attributes = self._tado_zone_data.open_window_attr
+
+
+class TadoDeviceSensor(Entity):
+    """Representation of a tado Sensor."""
+
+    def __init__(self, hass, tado, device_name, device_id, device_variable):
+        """Initialize of the Tado Sensor."""
+        self.hass = hass
+        self._tado = tado
+
+        self.device_name = device_name
+        self.device_id = device_id
+        self.device_variable = device_variable
+
+        self._unique_id = f"{device_variable} {device_id} {tado.device_id}"
+
+        self._state = None
+        self._state_attributes = None
+        self._tado_device_data = None
+        self._async_update_device_data()
+
+    async def async_added_to_hass(self):
+        """Register for sensor updates."""
+
+        async_dispatcher_connect(
+            self.hass,
+            SIGNAL_TADO_UPDATE_RECEIVED.format("device", self.device_id),
+            self._async_update_callback,
+        )
+
+    @property
+    def unique_id(self):
+        """Return the unique id."""
+        return self._unique_id
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return f"{self.device_name} {self.device_variable}"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def should_poll(self):
+        """Do not poll."""
+        return False
+
+    @callback
+    def _async_update_callback(self):
+        """Update and write state."""
+        self._async_update_device_data()
+        self.async_write_ha_state()
+
+    @callback
+    def _async_update_device_data(self):
+        """Handle update callbacks."""
+        try:
+            data = self._tado.data["device"][self.device_id]
+        except KeyError:
+            return
+
+        elif self.device_variable == "tado bridge status":
+            self._state = data.get("connectionState",{}).get("value",False)
