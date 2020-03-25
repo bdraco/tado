@@ -21,6 +21,7 @@ from . import DOMAIN, SIGNAL_TADO_UPDATE_RECEIVED
 from .const import (
     CONST_FAN_AUTO,
     CONST_FAN_OFF,
+    CONST_MODE_AUTO,
     CONST_MODE_COOL,
     CONST_MODE_HEAT,
     CONST_MODE_OFF,
@@ -197,13 +198,19 @@ class TadoClimate(ClimateDevice):
         self._current_tado_hvac_mode = CONST_MODE_OFF
         self._current_tado_hvac_action = CURRENT_HVAC_OFF
 
+        self._undo_dispatcher = None
         self._tado_zone_data = None
         self._async_update_zone_data()
+
+    async def async_will_remove_from_hass(self):
+        """When entity will be removed from hass."""
+        if self._undo_dispatcher:
+            self._undo_dispatcher()
 
     async def async_added_to_hass(self):
         """Register for sensor updates."""
 
-        async_dispatcher_connect(
+        self._undo_dispatcher = async_dispatcher_connect(
             self.hass,
             SIGNAL_TADO_UPDATE_RECEIVED.format("zone", self.zone_id),
             self._async_update_callback,
@@ -245,9 +252,7 @@ class TadoClimate(ClimateDevice):
 
         Need to be one of HVAC_MODE_*.
         """
-        return TADO_TO_HA_HVAC_MODE_MAP.get(
-            self._current_tado_hvac_mode, HVAC_MODE_OFF
-        )
+        return TADO_TO_HA_HVAC_MODE_MAP.get(self._current_tado_hvac_mode, HVAC_MODE_OFF)
 
     @property
     def hvac_modes(self):
@@ -297,10 +302,7 @@ class TadoClimate(ClimateDevice):
 
     def set_preset_mode(self, preset_mode):
         """Set new preset mode."""
-        if preset_mode == PRESET_HOME:
-            self._tado.set_home()
-        else:
-            self._tado.set_away()
+        self._tado.set_presence(preset_mode)
 
     @property
     def temperature_unit(self):
@@ -317,7 +319,11 @@ class TadoClimate(ClimateDevice):
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        return self._tado_zone_data.target_temp
+        # If the target temperature will be None
+        # if the device is performing an action
+        # that does not affect the temperature or
+        # the device is switching states
+        return self._tado_zone_data.target_temp or self._tado_zone_data.current_temp
 
     def set_temperature(self, **kwargs):
         """Set new target temperature."""
@@ -325,7 +331,16 @@ class TadoClimate(ClimateDevice):
         if temperature is None:
             return
 
-        self._control_hvac(target_temp=temperature)
+        if self._current_tado_hvac_mode not in (
+            CONST_MODE_OFF,
+            CONST_MODE_AUTO,
+            CONST_MODE_SMART_SCHEDULE,
+        ):
+            self._control_hvac(target_temp=temperature)
+            return
+
+        new_hvac_mode = CONST_MODE_COOL if self._ac_device else CONST_MODE_HEAT
+        self._control_hvac(target_temp=temperature, hvac_mode=new_hvac_mode)
 
     def set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -381,10 +396,7 @@ class TadoClimate(ClimateDevice):
         # Set a target temperature if we don't have any
         # This can happen when we switch from Off to On
         if self._target_temp is None:
-            if self._current_tado_hvac_mode == CONST_MODE_COOL:
-                self._target_temp = self._cool_max_temp
-            else:
-                self._target_temp = self._heat_min_temp
+            self._target_temp = self._tado_zone_data.current_temp
         elif self._current_tado_hvac_mode == CONST_MODE_COOL:
             if self._target_temp > self._cool_max_temp:
                 self._target_temp = self._cool_max_temp
@@ -451,6 +463,8 @@ class TadoClimate(ClimateDevice):
         if self._current_tado_hvac_mode in TADO_MODES_WITH_NO_TEMP_SETTING:
             # A temperature cannot be passed with these modes
             temperature_to_send = None
+
+        _LOGGER.info("FALLBACK: %s, OVERLAY MODE: %s", self._tado.fallback, overlay_mode)
 
         self._tado.set_zone_overlay(
             zone_id=self.zone_id,

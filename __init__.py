@@ -6,8 +6,8 @@ from PyTado.interface import Tado
 from requests import RequestException
 import voluptuous as vol
 
+from homeassistant.components.climate.const import PRESET_AWAY, PRESET_HOME
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.dispatcher import dispatcher_send
@@ -168,25 +168,14 @@ class TadoConnector:
         self.tado.resetZoneOverlay(zone_id)
         self.update_sensor("zone", zone_id)
 
-    def set_home(self):
-        """Put tado in home mode."""
-        response_json = None
-        try:
-            response_json = self.tado.setHome()
-        except RequestException as exc:
-            _LOGGER.error("Could not set home: %s", exc)
-
-        _raise_home_away_errors(response_json)
-
-    def set_away(self):
-        """Put tado in away mode."""
-        response_json = None
-        try:
-            response_json = self.tado.setAway()
-        except RequestException as exc:
-            _LOGGER.error("Could not set away: %s", exc)
-
-        _raise_home_away_errors(response_json)
+    def set_presence(
+        self, presence=PRESET_HOME,
+    ):
+        """Set the presence to home or away."""
+        if presence == PRESET_AWAY:
+            self.tado.setAway()
+        elif presence == PRESET_HOME:
+            self.tado.setHome()
 
     def set_zone_overlay(
         self,
@@ -237,14 +226,3 @@ class TadoConnector:
             _LOGGER.error("Could not set zone overlay: %s", exc)
 
         self.update_sensor("zone", zone_id)
-
-
-def _raise_home_away_errors(response_json):
-    if response_json is None:
-        return
-
-    # Likely we are displaying to the user:
-    # Tried to update to HOME though all mobile devices are detected outside the home fence
-    if "errors" in response_json and len(response_json["errors"]) > 0:
-        error_list = response_json["errors"]
-        raise HomeAssistantError(error_list[0]["title"])
