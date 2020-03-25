@@ -464,8 +464,6 @@ class TadoClimate(ClimateDevice):
             # A temperature cannot be passed with these modes
             temperature_to_send = None
 
-        _LOGGER.info("FALLBACK: %s, OVERLAY MODE: %s", self._tado.fallback, overlay_mode)
-
         self._tado.set_zone_overlay(
             zone_id=self.zone_id,
             overlay_mode=overlay_mode,  # What to do when the period ends
